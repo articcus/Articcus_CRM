@@ -20,7 +20,13 @@ export default function GoogleSignInButton() {
       await loginWithGoogle()
       navigate('/')
     } catch (err) {
-      if (err.code !== 'auth/popup-closed-by-user') {
+      if (err.code === 'auth/popup-closed-by-user') {
+        // user dismissed the Google popup themselves — not an error worth showing
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message)
+      } else if (err.code) {
+        setError(`Google sign-in failed (${err.code}). Please try again.`)
+      } else {
         setError('Google sign-in failed. Please try again.')
       }
     } finally {
