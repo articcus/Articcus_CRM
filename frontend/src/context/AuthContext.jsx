@@ -38,12 +38,13 @@ export function AuthProvider({ children }) {
     setUser(data.user)
   }
 
-  async function register(name, email, password, passwordConfirmation) {
+  async function register(name, email, password, passwordConfirmation, inviteToken) {
     const { data } = await api.post('/register', {
       name,
       email,
       password,
       password_confirmation: passwordConfirmation,
+      invite_token: inviteToken,
     })
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))

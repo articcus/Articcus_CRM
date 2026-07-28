@@ -83,12 +83,15 @@ API available at `http://127.0.0.1:8000/api`.
 
 | Method | Endpoint                | Description                  |
 |--------|--------------------------|-------------------------------|
-| POST   | /api/register             | Create account, returns token |
+| POST   | /api/register             | Create account — requires a valid `invite_token`, returns Sanctum token |
 | POST   | /api/login                 | Returns token                 |
-| POST   | /api/auth/firebase          | Sign in via Firebase ID token, returns Sanctum token |
+| POST   | /api/auth/firebase          | Sign in via Firebase ID token; new accounts require a matching invitation, returns Sanctum token |
 | POST   | /api/logout                | Revoke current token (auth)   |
 | GET    | /api/me                    | Current user (auth)           |
 | GET    | /api/users                  | List team members, for assignment pickers (auth) |
+| GET    | /api/invitations/{token}     | Public — validate an invite link before showing the registration form |
+| GET/POST | /api/invitations            | List or create invitations (admin only) |
+| DELETE | /api/invitations/{id}        | Revoke a pending invitation (admin only) |
 | GET/POST | /api/companies             | List/search or create companies (auth) |
 | GET/PUT/DELETE | /api/companies/{id}   | Show/update/delete a company (auth) |
 | GET/POST | /api/contacts              | List/search/filter (`company_id`) or create contacts (auth) |
@@ -105,10 +108,27 @@ API available at `http://127.0.0.1:8000/api`.
 
 Auth uses Sanctum personal access tokens — send `Authorization: Bearer <token>`.
 
+### Team & invitations
+
+Registration is **invite-only** — there is no open sign-up. An admin invites someone from
+**Team** (`/team`, admin-only, also in the sidebar): enter an email + role, get back a
+shareable link (`/register?invite=<token>`, valid 7 days). Share it however you like (Slack,
+WhatsApp, etc.) — there's no email delivery, since this stays a self-contained system with no
+SMTP dependency. The invite fixes the invitee's email (locked, can't be changed on the
+registration form) and role; accepting it (via the form or "Continue with Google") consumes
+it. An invite can't be reused, and expires after 7 days. The very first admin account
+(already in the seeded data) can invite everyone else — there's no bootstrapping problem.
+
+This closes a real gap the old open-registration model had: **Google sign-in also enforces
+this** — a brand-new Google account (no existing user by that `firebase_uid`/email) is
+rejected with a 403 unless a matching, unexpired, unaccepted invitation exists for that email.
+Existing users signing in with Google are unaffected either way.
+
 ### Roles & ownership
 
-Every `User` has a `role`: `admin` or `rep` (default `rep` on registration/Google sign-in —
-promote someone via `php artisan tinker`: `App\Models\User::find($id)->update(['role' => 'admin'])`).
+Every `User` has a `role`: `admin` or `rep`, set from the invitation they accepted. To change
+someone's role after the fact, use `php artisan tinker`:
+`App\Models\User::find($id)->update(['role' => 'admin'])`.
 
 Companies, Contacts, and Deals each have an `owner_id`. On `index`, **reps only see records
 they own**; **admins see everything**. Only admins can set/change `owner_id` on a record (a
@@ -182,9 +202,12 @@ real traffic.
 
 ## Notes / what's implemented
 
-- Register / login / logout with Sanctum token auth, protected routes on the frontend.
+- Login / logout with Sanctum token auth, protected routes on the frontend. Registration is
+  invite-only — see "Team & invitations" above.
 - Google sign-in via Firebase Auth, issuing the same Sanctum token as email/password (see
-  above).
+  above) — also invite-gated for new accounts.
+- **Team** (`/team`, admin-only): invite teammates by email + role, get a shareable invite
+  link, see pending/accepted/expired status, revoke a pending invite, see the full member list.
 - **Companies → Contacts → Deals** data model, with a **drag-and-drop pipeline board**
   (`/pipeline`) — 6 stages (New → Contacted → Qualified → Proposal → Won/Lost); dragging a
   card calls `PATCH /deals/{id}/stage`, and `closed_at` is set automatically on Won/Lost.
@@ -237,8 +260,11 @@ drag-and-drop, activity creation/filtering/complete-toggle, the full log-and-res
 (note → complete → new follow-up activity → deal stage move, confirmed via curl), project
 creation with a deal and mixed pending/completed activity history confirmed to round-trip
 correctly through `GET /api/projects/{id}`, dashboard aggregates against hand-computed values,
-rep-vs-admin visibility scoping, and 403s on cross-ownership edits — and the frontend build
-(`npm run build`) succeeds cleanly, with every route confirmed to transform without error via
-the Vite dev server. A live in-browser click-through hasn't been done in this session (the
-connected browser is on a different machine than the dev servers); open
-`http://localhost:5180` yourself to see it rendered.
+rep-vs-admin visibility scoping, and 403s on cross-ownership edits. The invite system was
+verified end-to-end too: invite creation → link validation (valid/bogus/expired) → registration
+consuming it with the correct role assigned → reuse and email-mismatch both rejected → 403 for
+non-admins managing invitations → revocation. Frontend build (`npm run build`) succeeds
+cleanly, with every route confirmed to transform without error via the Vite dev server. A live
+in-browser click-through hasn't been done in this session (the connected browser is on a
+different machine than the dev servers); open `http://localhost:5180` yourself to see it
+rendered.

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -22,17 +23,29 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Password::defaults()],
+            'invite_token' => ['required', 'string'],
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $invitation = Invitation::where('token', $request->invite_token)->first();
+
+        if (! $invitation || ! $invitation->isValid() || strcasecmp($invitation->email, $request->email) !== 0) {
+            return response()->json([
+                'errors' => ['invite_token' => ['This invite is invalid, expired, or already used.']],
+            ], 422);
+        }
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => $invitation->role,
         ]);
+
+        $invitation->update(['accepted_at' => now()]);
 
         $token = $user->createToken('articcus-crm')->plainTextToken;
 
@@ -102,12 +115,23 @@ class AuthController extends Controller
                 $user->update(['firebase_uid' => $firebaseUid]);
             }
         } else {
+            $invitation = Invitation::where('email', $email)->first();
+
+            if (! $invitation || ! $invitation->isValid()) {
+                return response()->json([
+                    'message' => 'No invitation found for this email. Ask your admin to invite you.',
+                ], 403);
+            }
+
             $user = User::create([
                 'firebase_uid' => $firebaseUid,
                 'name' => $name,
                 'email' => $email,
                 'password' => Hash::make(Str::random(40)),
+                'role' => $invitation->role,
             ]);
+
+            $invitation->update(['accepted_at' => now()]);
         }
 
         $token = $user->createToken('articcus-crm')->plainTextToken;

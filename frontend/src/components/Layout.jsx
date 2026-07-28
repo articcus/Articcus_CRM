@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LogOut,
   Plus,
+  UsersRound,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/client'
@@ -87,6 +88,21 @@ export default function Layout({ children }) {
               )}
             </NavLink>
           ))}
+          {user?.role === 'admin' && (
+            <NavLink
+              to="/team"
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 w-full px-3 py-2 rounded-[9px] text-[13.5px] font-medium mb-0.5 transition ${
+                  isActive
+                    ? 'bg-indigo-50 text-indigo-600 font-semibold'
+                    : 'text-slate-500 hover:bg-slate-100'
+                }`
+              }
+            >
+              <UsersRound size={16} strokeWidth={2} className="shrink-0" />
+              Team
+            </NavLink>
+          )}
         </nav>
 
         <div className="flex items-center justify-between px-4 pt-3 pb-1.5">

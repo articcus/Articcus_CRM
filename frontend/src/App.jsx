@@ -10,6 +10,7 @@ import CompaniesPage from './pages/CompaniesPage'
 import ContactsPage from './pages/ContactsPage'
 import DashboardPage from './pages/DashboardPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
+import TeamPage from './pages/TeamPage'
 
 function App() {
   return (
@@ -71,6 +72,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProjectDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/team"
+            element={
+              <ProtectedRoute>
+                <TeamPage />
               </ProtectedRoute>
             }
           />
