@@ -57,18 +57,11 @@ export default function Layout({ children }) {
   return (
     <div className="h-screen flex bg-slate-50 text-slate-900 text-[14px]">
       <aside className="w-[248px] shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-y-auto">
-        <div className="px-5 pt-5 pb-4 flex items-center gap-2.5 border-b border-slate-100">
-          <div className="w-8 h-8 rounded-[9px] bg-gradient-to-br from-indigo-600 to-violet-400 flex items-center justify-center text-white font-display font-bold text-sm shrink-0">
-            A
-          </div>
-          <div className="min-w-0">
-            <p className="font-display font-bold text-[15px] tracking-tight leading-tight truncate">
-              Articcus CRM
-            </p>
-            <p className="font-mono text-[9px] tracking-[.18em] text-slate-400 uppercase mt-0.5">
-              Follow-up desk
-            </p>
-          </div>
+        <div className="px-5 pt-5 pb-4 border-b border-slate-100">
+          <img src="/logo-articcus.png" alt="Articcus" className="h-6 w-auto" />
+          <p className="font-mono text-[9px] tracking-[.18em] text-slate-400 uppercase mt-1.5">
+            Follow-up desk
+          </p>
         </div>
 
         <nav className="px-3 pt-3.5 pb-2">

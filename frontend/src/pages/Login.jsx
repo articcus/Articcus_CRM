@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Sparkles } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import GoogleSignInButton from '../components/GoogleSignInButton'
 
@@ -39,12 +38,7 @@ export default function Login() {
         noValidate
         className="w-full max-w-sm bg-white p-8 rounded-[18px] shadow-2xl border border-slate-100"
       >
-        <div className="w-12 h-12 rounded-[12px] bg-gradient-to-br from-indigo-600 to-violet-400 flex items-center justify-center text-white mb-4">
-          <Sparkles size={22} strokeWidth={2} />
-        </div>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900 mb-1">
-          Articcus CRM
-        </h1>
+        <img src="/logo-articcus.png" alt="Articcus" className="h-8 w-auto mb-5" />
         <p className="text-sm text-slate-500 mb-6">Sign in to your account</p>
 
         {error && (
