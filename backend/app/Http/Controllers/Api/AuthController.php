@@ -115,23 +115,22 @@ class AuthController extends Controller
                 $user->update(['firebase_uid' => $firebaseUid]);
             }
         } else {
+            // Google sign-in auto-registers a new account even without a pending
+            // invitation — a matching invite (if any) still controls the role granted.
             $invitation = Invitation::where('email', $email)->first();
-
-            if (! $invitation || ! $invitation->isValid()) {
-                return response()->json([
-                    'message' => 'No invitation found for this email. Ask your admin to invite you.',
-                ], 403);
-            }
+            $role = $invitation && $invitation->isValid() ? $invitation->role : 'rep';
 
             $user = User::create([
                 'firebase_uid' => $firebaseUid,
                 'name' => $name,
                 'email' => $email,
                 'password' => Hash::make(Str::random(40)),
-                'role' => $invitation->role,
+                'role' => $role,
             ]);
 
-            $invitation->update(['accepted_at' => now()]);
+            if ($invitation && $invitation->isValid()) {
+                $invitation->update(['accepted_at' => now()]);
+            }
         }
 
         $token = $user->createToken('articcus-crm')->plainTextToken;

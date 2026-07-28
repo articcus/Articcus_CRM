@@ -85,7 +85,7 @@ API available at `http://127.0.0.1:8000/api`.
 |--------|--------------------------|-------------------------------|
 | POST   | /api/register             | Create account — requires a valid `invite_token`, returns Sanctum token |
 | POST   | /api/login                 | Returns token                 |
-| POST   | /api/auth/firebase          | Sign in via Firebase ID token; new accounts require a matching invitation, returns Sanctum token |
+| POST   | /api/auth/firebase          | Sign in via Firebase ID token; auto-registers new accounts (`rep` by default, or an invite's role if one matches), returns Sanctum token |
 | POST   | /api/logout                | Revoke current token (auth)   |
 | GET    | /api/me                    | Current user (auth)           |
 | GET    | /api/users                  | List team members, for assignment pickers (auth) |
@@ -110,19 +110,22 @@ Auth uses Sanctum personal access tokens — send `Authorization: Bearer <token>
 
 ### Team & invitations
 
-Registration is **invite-only** — there is no open sign-up. An admin invites someone from
-**Team** (`/team`, admin-only, also in the sidebar): enter an email + role, get back a
-shareable link (`/register?invite=<token>`, valid 7 days). Share it however you like (Slack,
-WhatsApp, etc.) — there's no email delivery, since this stays a self-contained system with no
-SMTP dependency. The invite fixes the invitee's email (locked, can't be changed on the
-registration form) and role; accepting it (via the form or "Continue with Google") consumes
-it. An invite can't be reused, and expires after 7 days. The very first admin account
-(already in the seeded data) can invite everyone else — there's no bootstrapping problem.
+**Email/password registration is invite-only** — there is no open sign-up form. An admin
+invites someone from **Team** (`/team`, admin-only, also in the sidebar): enter an email +
+role, get back a shareable link (`/register?invite=<token>`, valid 7 days). Share it however
+you like (Slack, WhatsApp, etc.) — there's no email delivery, since this stays a
+self-contained system with no SMTP dependency. The invite fixes the invitee's email (locked,
+can't be changed on the registration form) and role; accepting it consumes it. An invite
+can't be reused, and expires after 7 days. The very first admin account (already in the
+seeded data) can invite everyone else — there's no bootstrapping problem.
 
-This closes a real gap the old open-registration model had: **Google sign-in also enforces
-this** — a brand-new Google account (no existing user by that `firebase_uid`/email) is
-rejected with a 403 unless a matching, unexpired, unaccepted invitation exists for that email.
-Existing users signing in with Google are unaffected either way.
+**"Continue with Google" auto-registers**, invite or not — a brand-new Google account (no
+existing user by that `firebase_uid`/email) always gets created rather than rejected, since
+signing in with a real Google account is itself a form of identity verification. If a pending
+invitation happens to exist for that email, its role is honored and it's marked accepted;
+otherwise the new account gets the default `rep` role. Existing users signing in with Google
+are unaffected either way. (This is a deliberate asymmetry from the invite-only form path —
+Google sign-in trades stricter admission control for lower friction.)
 
 ### Roles & ownership
 
@@ -202,10 +205,10 @@ real traffic.
 
 ## Notes / what's implemented
 
-- Login / logout with Sanctum token auth, protected routes on the frontend. Registration is
-  invite-only — see "Team & invitations" above.
+- Login / logout with Sanctum token auth, protected routes on the frontend. Email/password
+  registration is invite-only — see "Team & invitations" above.
 - Google sign-in via Firebase Auth, issuing the same Sanctum token as email/password (see
-  above) — also invite-gated for new accounts.
+  above) — auto-registers new accounts regardless of invite status (see "Team & invitations").
 - **Team** (`/team`, admin-only): invite teammates by email + role, get a shareable invite
   link, see pending/accepted/expired status, revoke a pending invite, see the full member list.
 - **Companies → Contacts → Deals** data model, with a **drag-and-drop pipeline board**
