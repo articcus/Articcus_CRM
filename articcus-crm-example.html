@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Articcus CRM — Follow-ups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#151823; --slate:#5B647A; --faint:#8A93A6;
+    --paper:#F7F8FB; --panel:#FFFFFF; --line:#E7EAF1; --line2:#EEF0F6;
+    --accent:#4F46E5; --accent-soft:#EEEDFD;
+    --over:#E0503B; --over-soft:#FCEDE9;
+    --today:#C7841A; --today-soft:#FBF2E0;
+    --soon:#1F9D6B; --soon-soft:#E6F5EE;
+    --won:#1F9D6B; --lost:#96A0B3;
+    --shadow:0 1px 2px rgba(20,24,35,.04),0 8px 24px rgba(20,24,35,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;font-size:14px}
+  .mono{font-family:'Space Mono',monospace}
+  .disp{font-family:'Space Grotesk',sans-serif}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,select,textarea{font-family:inherit;font-size:14px}
+
+  .app{display:grid;grid-template-columns:246px 1fr;height:100vh;overflow:hidden}
+
+  /* ---------- SIDEBAR ---------- */
+  .side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto}
+  .brand{padding:20px 20px 16px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--line2)}
+  .brand .mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#8b7bff);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Space Grotesk';font-weight:700;font-size:16px}
+  .brand .nm{font-family:'Space Grotesk';font-weight:700;font-size:16px;letter-spacing:-.01em}
+  .brand .nm small{display:block;font-family:'Space Mono';font-weight:400;font-size:9px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase;margin-top:1px}
+
+  .nav{padding:14px 12px 6px}
+  .nav-item{display:flex;align-items:center;gap:11px;width:100%;padding:9px 12px;border-radius:9px;color:var(--slate);font-weight:500;font-size:13.5px;text-align:left;margin-bottom:2px}
+  .nav-item svg{width:17px;height:17px;stroke:currentColor;flex:none}
+  .nav-item:hover{background:var(--line2)}
+  .nav-item.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .nav-item .badge{margin-left:auto;font-family:'Space Mono';font-size:10px;background:var(--over);color:#fff;border-radius:20px;padding:1px 7px;font-weight:700}
+  .nav-item.on .badge{background:var(--over)}
+
+  .side-lbl{font-family:'Space Mono';font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);padding:16px 24px 8px}
+  .prod-list{padding:0 12px}
+  .prod-chip{display:flex;align-items:center;gap:10px;width:100%;padding:8px 12px;border-radius:9px;font-size:13px;color:var(--slate);text-align:left;margin-bottom:1px}
+  .prod-chip:hover{background:var(--line2)}
+  .prod-chip.on{background:var(--line2);color:var(--ink);font-weight:600}
+  .prod-chip .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .prod-chip .ct{margin-left:auto;font-family:'Space Mono';font-size:10.5px;color:var(--faint)}
+
+  .side-foot{margin-top:auto;padding:14px 16px;border-top:1px solid var(--line2);display:flex;flex-direction:column;gap:7px}
+  .mini-btn{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:8px;font-size:12.5px;color:var(--slate);border:1px solid var(--line)}
+  .mini-btn:hover{background:var(--line2);color:var(--ink)}
+  .mini-btn svg{width:15px;height:15px;stroke:currentColor}
+
+  /* ---------- MAIN ---------- */
+  .main{overflow-y:auto;display:flex;flex-direction:column}
+  .top{position:sticky;top:0;z-index:5;background:rgba(247,248,251,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:16px 28px;display:flex;align-items:center;gap:16px}
+  .top h1{font-family:'Space Grotesk';font-size:21px;font-weight:700;letter-spacing:-.02em}
+  .top h1 span{color:var(--faint);font-weight:500}
+  .search{margin-left:auto;position:relative}
+  .search input{width:230px;padding:9px 12px 9px 34px;border:1px solid var(--line);border-radius:10px;background:var(--panel);outline:none}
+  .search input:focus{border-color:var(--accent)}
+  .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--faint)}
+  .btn-primary{background:var(--accent);color:#fff;font-weight:600;font-size:13.5px;padding:10px 16px;border-radius:10px;display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .btn-primary:hover{background:#4038c9}
+  .btn-primary svg{width:16px;height:16px;stroke:#fff}
+
+  .content{padding:24px 28px 60px}
+
+  /* ---------- SUMMARY STRIP ---------- */
+  .strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .kpi .lbl{font-family:'Space Mono';font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:7px}
+  .kpi .lbl .d{width:7px;height:7px;border-radius:50%}
+  .kpi .val{font-family:'Space Grotesk';font-size:30px;font-weight:700;letter-spacing:-.02em;margin-top:8px;line-height:1}
+  .kpi .sub{font-size:11.5px;color:var(--slate);margin-top:5px}
+
+  /* ---------- FOLLOW-UP QUEUES ---------- */
+  .qgroup{margin-bottom:26px}
+  .qhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .qhead .tag{font-family:'Space Grotesk';font-weight:700;font-size:14px;letter-spacing:-.01em}
+  .qhead .pill{font-family:'Space Mono';font-size:10px;padding:2px 9px;border-radius:20px;font-weight:700}
+  .pill.over{background:var(--over-soft);color:var(--over)}
+  .pill.today{background:var(--today-soft);color:var(--today)}
+  .pill.soon{background:var(--soon-soft);color:var(--soon)}
+  .pill.later{background:var(--line2);color:var(--slate)}
+
+  .fu{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:14px;margin-bottom:8px;box-shadow:var(--shadow);transition:border-color .12s}
+  .fu:hover{border-color:#cfd4e2}
+  .fu .lead{border-left:3px solid;padding-left:13px;min-width:0;flex:1}
+  .fu .co{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+  .fu .co .pdot{width:8px;height:8px;border-radius:50%;flex:none}
+  .fu .act{font-size:12.5px;color:var(--slate);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fu .meta{text-align:right;flex:none}
+  .fu .date{font-family:'Space Mono';font-size:12px;font-weight:700}
+  .fu .stage{font-size:10.5px;color:var(--faint);margin-top:3px}
+  .fu .btns{display:flex;gap:6px;flex:none}
+  .icon-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--slate)}
+  .icon-btn:hover{background:var(--line2);color:var(--ink)}
+  .icon-btn.done:hover{background:var(--soon-soft);color:var(--soon);border-color:var(--soon)}
+  .icon-btn svg{width:15px;height:15px;stroke:currentColor}
+
+  .empty{text-align:center;padding:50px 20px;color:var(--faint)}
+  .empty .big{font-family:'Space Grotesk';font-size:16px;color:var(--slate);font-weight:600;margin-bottom:6px}
+
+  /* ---------- PIPELINE ---------- */
+  .board{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:start}
+  .col{background:var(--line2);border-radius:14px;padding:10px;min-height:120px}
+  .col-h{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 10px}
+  .col-h .t{font-family:'Space Grotesk';font-weight:600;font-size:12.5px}
+  .col-h .v{font-family:'Space Mono';font-size:10px;color:var(--slate)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer}
+  .card:hover{border-color:#cfd4e2}
+  .card .co{font-weight:600;font-size:13px;display:flex;align-items:center;gap:7px}
+  .card .co .pdot{width:7px;height:7px;border-radius:50%;flex:none}
+  .card .amt{font-family:'Space Mono';font-size:11.5px;color:var(--slate);margin-top:6px}
+  .card .fudate{font-family:'Space Mono';font-size:10px;margin-top:6px;display:flex;align-items:center;gap:5px}
+  .card .fudate .d{width:6px;height:6px;border-radius:50%}
+
+  /* ---------- TABLE ---------- */
+  .filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .fsel{padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);outline:none}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  thead th{font-family:'Space Mono';font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);font-weight:700}
+  tbody td{padding:13px 16px;border-bottom:1px solid var(--line2);font-size:13px}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:var(--paper)}
+  .st-badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+  .co-cell{display:flex;align-items:center;gap:9px;font-weight:600}
+  .co-cell .pdot{width:8px;height:8px;border-radius:50%;flex:none}
+  .r-over{color:var(--over);font-weight:700}
+  .r-today{color:var(--today);font-weight:700}
+
+  /* ---------- MODAL ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(20,24,35,.44);backdrop-filter:blur(2px);z-index:50;display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
+  .overlay.show{display:flex}
+  .modal{background:var(--panel);border-radius:18px;width:560px;max-width:100%;box-shadow:0 30px 80px rgba(20,24,35,.3);overflow:hidden}
+  .m-head{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+  .m-head h3{font-family:'Space Grotesk';font-size:18px;font-weight:700;letter-spacing:-.01em}
+  .m-body{padding:22px 24px;max-height:64vh;overflow-y:auto}
+  .m-foot{padding:16px 24px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:space-between;align-items:center}
+  .field{margin-bottom:15px}
+  .field label{display:block;font-size:11.5px;font-weight:600;color:var(--slate);margin-bottom:6px}
+  .field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;outline:none;background:var(--panel)}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn-ghost{padding:10px 16px;border-radius:10px;border:1px solid var(--line);font-weight:600;font-size:13.5px;color:var(--slate)}
+  .btn-ghost:hover{background:var(--line2);color:var(--ink)}
+  .btn-danger{color:var(--over);border-color:var(--over-soft)}
+  .btn-danger:hover{background:var(--over-soft)}
+
+  .log{margin-top:6px}
+  .log-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line2);font-size:12.5px}
+  .log-item .ld{font-family:'Space Mono';font-size:10.5px;color:var(--faint);flex:none;width:74px}
+  .log-item .lt{color:var(--slate)}
+  .sub-lbl{font-family:'Space Mono';font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:20px 0 8px;border-top:1px solid var(--line2);padding-top:16px}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:500;opacity:0;transition:.25s;z-index:100;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .hide{display:none!important}
+  .menu-btn{display:none}
+
+  @media(max-width:900px){
+    .app{grid-template-columns:1fr}
+    .side{position:fixed;left:0;top:0;bottom:0;width:246px;z-index:40;transform:translateX(-100%);transition:.2s}
+    .side.open{transform:translateX(0)}
+    .menu-btn{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--panel)}
+    .menu-btn svg{width:18px;height:18px;stroke:var(--ink)}
+    .strip{grid-template-columns:1fr 1fr}
+    .board{grid-template-columns:1fr;gap:16px}
+    .search input{width:150px}
+    .top h1 span{display:none}
+    table{display:block;overflow-x:auto}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="side" id="side">
+    <div class="brand">
+      <div class="mark">A</div>
+      <div class="nm">Articcus CRM<small>Follow-up desk</small></div>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-item on" data-view="followups">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+        Follow-ups <span class="badge hide" id="fuBadge">0</span>
+      </button>
+      <button class="nav-item" data-view="pipeline">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Pipeline
+      </button>
+      <button class="nav-item" data-view="deals">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        All deals
+      </button>
+    </nav>
+
+    <div class="side-lbl">Products</div>
+    <div class="prod-list" id="prodList"></div>
+
+    <div class="side-foot">
+      <button class="mini-btn" id="exportBtn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export backup (JSON)</button>
+      <button class="mini-btn" id="importBtn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Import backup</button>
+      <input type="file" id="importFile" accept="application/json" class="hide">
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="top">
+      <button class="menu-btn" id="menuBtn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <h1 id="viewTitle">Follow-ups <span id="filterLabel"></span></h1>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="Search company…">
+      </div>
+      <button class="btn-primary" id="newBtn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New deal</button>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<!-- DEAL MODAL -->
+<div class="overlay" id="dealOverlay">
+  <div class="modal">
+    <div class="m-head"><h3 id="modalTitle">New deal</h3><button class="icon-btn" id="closeModal" style="border:none"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="m-body">
+      <div class="field"><label>Company / customer</label><input type="text" id="fCompany" placeholder="e.g. George Steuart Health"></div>
+      <div class="row2">
+        <div class="field"><label>Contact name</label><input type="text" id="fContact" placeholder="Decision-maker"></div>
+        <div class="field"><label>Phone / WhatsApp</label><input type="text" id="fPhone" placeholder="+94…"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Product</label><select id="fProduct"></select></div>
+        <div class="field"><label>Stage</label><select id="fStage"></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Deal value (LKR)</label><input type="number" id="fValue" placeholder="0"></div>
+        <div class="field"><label>Email</label><input type="text" id="fEmail" placeholder="optional"></div>
+      </div>
+      <div class="sub-lbl">Next follow-up</div>
+      <div class="row2">
+        <div class="field"><label>What's the next action?</label><input type="text" id="fAction" placeholder="e.g. Send proposal, call to confirm demo"></div>
+        <div class="field"><label>Date</label><input type="date" id="fDate"></div>
+      </div>
+      <div class="field"><label>Note to log now (optional)</label><textarea id="fNote" rows="2" placeholder="What happened in the last touch?"></textarea></div>
+
+      <div id="logWrap" class="hide">
+        <div class="sub-lbl">Activity log</div>
+        <div class="log" id="logList"></div>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn-ghost btn-danger hide" id="deleteBtn">Delete</button>
+      <div style="margin-left:auto;display:flex;gap:10px">
+        <button class="btn-ghost" id="cancelBtn">Cancel</button>
+        <button class="btn-primary" id="saveBtn">Save deal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETE FOLLOW-UP MODAL -->
+<div class="overlay" id="doneOverlay">
+  <div class="modal" style="width:440px">
+    <div class="m-head"><h3>Log this touch</h3><button class="icon-btn" id="closeDone" style="border:none"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="m-body">
+      <div class="field"><label>What happened?</label><input type="text" id="dNote" placeholder="e.g. Called, agreed to demo Tuesday"></div>
+      <div class="sub-lbl">Schedule the next follow-up</div>
+      <div class="field"><label>Next action</label><input type="text" id="dAction" placeholder="e.g. Run demo, send proposal"></div>
+      <div class="row2">
+        <div class="field"><label>Date</label><input type="date" id="dDate"></div>
+        <div class="field"><label>Move to stage</label><select id="dStage"></select></div>
+      </div>
+      <p style="font-size:11.5px;color:var(--faint)">Leave the date blank if there's no next step (e.g. deal won or lost).</p>
+    </div>
+    <div class="m-foot"><button class="btn-ghost" id="cancelDone">Cancel</button><button class="btn-primary" id="saveDone" style="margin-left:auto">Log &amp; schedule</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= DATA LAYER ================= */
+const DEAL_KEY='articcus-crm-deals-v1';
+const PROD_KEY='articcus-crm-products-v1';
+
+const Store={
+  memDeals:null, memProds:null,
+  async get(key){
+    try{ if(window.storage&&window.storage.get){ const r=await window.storage.get(key); return r&&r.value?JSON.parse(r.value):null; } }catch(e){}
+    return key===DEAL_KEY?this.memDeals:this.memProds;
+  },
+  async set(key,val){
+    if(key===DEAL_KEY)this.memDeals=val; else this.memProds=val;
+    try{ if(window.storage&&window.storage.set){ await window.storage.set(key,JSON.stringify(val)); } }catch(e){console.warn('persist failed',e);}
+  }
+};
+
+const DEFAULT_PRODUCTS=[
+  {id:'distroiq',name:'DistroIQ',color:'#0EA5A4'},
+  {id:'pulse',name:'Bellwether Pulse',color:'#3B82F6'},
+  {id:'rxbilling',name:'Retail Pharmacy Billing',color:'#F59E0B'},
+  {id:'ads',name:'Articcus Ads',color:'#8B5CF6'}
+];
+const STAGES=[
+  {id:'lead',name:'Lead',color:'#96A0B3',soft:'#EEF0F6'},
+  {id:'discovery',name:'Discovery',color:'#6366F1',soft:'#EEEDFD'},
+  {id:'demo',name:'Demo',color:'#0EA5A4',soft:'#E4F5F5'},
+  {id:'proposal',name:'Proposal',color:'#C7841A',soft:'#FBF2E0'},
+  {id:'negotiation',name:'Negotiation',color:'#E0503B',soft:'#FCEDE9'},
+  {id:'won',name:'Won',color:'#1F9D6B',soft:'#E6F5EE'},
+  {id:'lost',name:'Lost',color:'#96A0B3',soft:'#EEF0F6'}
+];
+const PIPE_STAGES=['lead','discovery','demo','proposal','negotiation'];
+
+let deals=[], products=[], state={view:'followups',product:'all',search:'',editingId:null,doneId:null};
+
+/* seed sample data so the queue demonstrates itself */
+function seed(){
+  const t=new Date(); const d=n=>{const x=new Date(t);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
+  return [
+    mk('George Steuart Health','Nuwan P.','+94 77 000 0001','distroiq','proposal',1500000,'Walk through proposal on call',d(-3),'Demo went well, flagged expiry write-offs as biggest pain'),
+    mk('Sunrise Pharmacy Chain','Dr. Fernando','+94 76 000 0002','pulse','demo',900000,'Run tailored demo (SMS reminders)',d(0),'Owner frustrated with no-shows'),
+    mk('MediLink Distributors','Kasun','+94 71 000 0003','distroiq','discovery',1500000,'Quantify credit/bad-debt leakage',d(0),'Intro call booked via referral'),
+    mk('CityCare Pharmacy','Ms. Silva','+94 70 000 0004','rxbilling','negotiation',750000,'Address PCI / hosting question',d(2),'Wants multi-branch billing'),
+    mk('Lanka Wellness Clinic','Dr. Jay','+94 77 000 0005','pulse','lead',400000,'First outreach message',d(5),'Inbound from brochure'),
+    mk('BrightBrand Foods','Ravi (owner)','+94 78 000 0006','ads','proposal',600000,'Send retainer proposal',d(-1),'Wants lead-gen + social')
+  ];
+}
+function mk(company,contact,phone,product,stage,value,action,date,note){
+  return {id:uid(),company,contact,phone,email:'',product,stage,value,nextAction:action,nextDate:date,
+    log:note?[{date:new Date().toISOString().slice(0,10),text:note}]:[],createdAt:Date.now(),updatedAt:Date.now()};
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+
+/* ================= INIT ================= */
+async function init(){
+  products=await Store.get(PROD_KEY); if(!products){products=DEFAULT_PRODUCTS;await Store.set(PROD_KEY,products);}
+  deals=await Store.get(DEAL_KEY); if(deals===null){deals=seed();await Store.set(DEAL_KEY,deals);}
+  bind(); renderProducts(); render();
+}
+async function persist(){deals.forEach(d=>{});await Store.set(DEAL_KEY,deals);}
+
+/* ================= HELPERS ================= */
+const todayStr=()=>new Date().toISOString().slice(0,10);
+function prod(id){return products.find(p=>p.id===id)||{name:'—',color:'#96A0B3'};}
+function stg(id){return STAGES.find(s=>s.id===id)||STAGES[0];}
+function fmtLKR(n){n=Number(n)||0; if(n>=1e6)return 'LKR '+(n/1e6).toFixed(n%1e6?1:0)+'M'; if(n>=1e3)return 'LKR '+(n/1e3).toFixed(0)+'K'; return 'LKR '+n;}
+function fmtDate(s){if(!s)return '—';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
+function dayDiff(s){if(!s)return null;const a=new Date(s+'T00:00:00'),b=new Date(todayStr()+'T00:00:00');return Math.round((a-b)/86400000);}
+function bucket(s){const n=dayDiff(s);if(n===null)return 'none';if(n<0)return 'over';if(n===0)return 'today';if(n<=7)return 'soon';return 'later';}
+function relLabel(s){const n=dayDiff(s);if(n===null)return 'No date';if(n<0)return Math.abs(n)+'d overdue';if(n===0)return 'Today';if(n===1)return 'Tomorrow';return 'in '+n+'d';}
+
+function activeDeals(){
+  let list=deals.filter(d=>state.product==='all'||d.product===state.product);
+  if(state.search){const q=state.search.toLowerCase();list=list.filter(d=>d.company.toLowerCase().includes(q)||(d.contact||'').toLowerCase().includes(q));}
+  return list;
+}
+function openDeals(){return activeDeals().filter(d=>d.stage!=='won'&&d.stage!=='lost');}
+
+/* ================= RENDER PRODUCTS ================= */
+function renderProducts(){
+  const el=document.getElementById('prodList');
+  const counts=id=>deals.filter(d=>d.product===id&&d.stage!=='won'&&d.stage!=='lost').length;
+  let h=`<button class="prod-chip ${state.product==='all'?'on':''}" data-prod="all"><span class="dot" style="background:linear-gradient(135deg,#4F46E5,#8b7bff)"></span>All products<span class="ct">${deals.filter(d=>d.stage!=='won'&&d.stage!=='lost').length}</span></button>`;
+  products.forEach(p=>{h+=`<button class="prod-chip ${state.product===p.id?'on':''}" data-prod="${p.id}"><span class="dot" style="background:${p.color}"></span>${p.name}<span class="ct">${counts(p.id)}</span></button>`;});
+  el.innerHTML=h;
+  el.querySelectorAll('.prod-chip').forEach(b=>b.onclick=()=>{state.product=b.dataset.prod;renderProducts();render();});
+}
+
+/* ================= MAIN RENDER ================= */
+function render(){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('on',n.dataset.view===state.view));
+  const titles={followups:'Follow-ups',pipeline:'Pipeline',deals:'All deals'};
+  document.getElementById('viewTitle').firstChild.textContent=titles[state.view]+' ';
+  document.getElementById('filterLabel').textContent=state.product==='all'?'· all products':'· '+prod(state.product).name;
+  const overCount=openDeals().filter(d=>bucket(d.nextDate)==='over').length;
+  const badge=document.getElementById('fuBadge');
+  badge.classList.toggle('hide',overCount===0);badge.textContent=overCount;
+  const c=document.getElementById('content');
+  if(state.view==='followups')c.innerHTML=viewFollowups();
+  else if(state.view==='pipeline')c.innerHTML=viewPipeline();
+  else c.innerHTML=viewDeals();
+  wireContent();
+}
+
+/* ---- FOLLOW-UPS ---- */
+function viewFollowups(){
+  const list=openDeals();
+  const groups={over:[],today:[],soon:[],later:[],none:[]};
+  list.forEach(d=>groups[bucket(d.nextDate)].push(d));
+  Object.values(groups).forEach(g=>g.sort((a,b)=>(a.nextDate||'9999').localeCompare(b.nextDate||'9999')));
+
+  const pipeVal=list.reduce((s,d)=>s+(Number(d.value)||0),0);
+  const strip=`<div class="strip">
+    <div class="kpi"><div class="lbl"><span class="d" style="background:var(--over)"></span>Overdue</div><div class="val" style="color:var(--over)">${groups.over.length}</div><div class="sub">need chasing now</div></div>
+    <div class="kpi"><div class="lbl"><span class="d" style="background:var(--today)"></span>Due today</div><div class="val" style="color:var(--today)">${groups.today.length}</div><div class="sub">on the list for today</div></div>
+    <div class="kpi"><div class="lbl"><span class="d" style="background:var(--soon)"></span>This week</div><div class="val" style="color:var(--soon)">${groups.soon.length}</div><div class="sub">next 7 days</div></div>
+    <div class="kpi"><div class="lbl"><span class="d" style="background:var(--accent)"></span>Open pipeline</div><div class="val">${fmtLKR(pipeVal)}</div><div class="sub">${list.length} active deals</div></div>
+  </div>`;
+
+  const sec=(key,label,cls)=>{
+    const g=groups[key]; if(!g.length)return '';
+    return `<div class="qgroup"><div class="qhead"><span class="tag">${label}</span><span class="pill ${cls}">${g.length}</span></div>${g.map(fuRow).join('')}</div>`;
+  };
+  let body=sec('over','Overdue','over')+sec('today','Today','today')+sec('soon','This week','soon')+sec('later','Later','later')+sec('none','No date set','later');
+  if(!list.length)body=`<div class="empty"><div class="big">Nothing to chase 🎉</div>No open follow-ups${state.product!=='all'?' for '+prod(state.product).name:''}. Add a deal to get started.</div>`;
+  return strip+body;
+}
+function fuRow(d){
+  const p=prod(d.product),s=stg(d.stage),b=bucket(d.nextDate);
+  const dateCls=b==='over'?'r-over':b==='today'?'r-today':'';
+  return `<div class="fu" data-open="${d.id}">
+    <div class="lead" style="border-color:${p.color}">
+      <div class="co"><span class="pdot" style="background:${p.color}"></span>${esc(d.company)}</div>
+      <div class="act">${esc(d.nextAction||'No action set')} ${d.value?'· '+fmtLKR(d.value):''}</div>
+    </div>
+    <div class="meta"><div class="date ${dateCls}">${relLabel(d.nextDate)}</div><div class="stage">${s.name} · ${fmtDate(d.nextDate)}</div></div>
+    <div class="btns">
+      <button class="icon-btn done" data-done="${d.id}" title="Log touch & reschedule"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
+      <button class="icon-btn" data-open="${d.id}" title="Open"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+    </div>
+  </div>`;
+}
+
+/* ---- PIPELINE ---- */
+function viewPipeline(){
+  const list=activeDeals();
+  let cols=PIPE_STAGES.map(sid=>{
+    const s=stg(sid);const items=list.filter(d=>d.stage===sid);
+    const val=items.reduce((a,d)=>a+(Number(d.value)||0),0);
+    const cards=items.sort((a,b)=>(a.nextDate||'9999').localeCompare(b.nextDate||'9999')).map(d=>{
+      const p=prod(d.product),b=bucket(d.nextDate);const col=b==='over'?'var(--over)':b==='today'?'var(--today)':b==='soon'?'var(--soon)':'var(--faint)';
+      return `<div class="card" data-open="${d.id}"><div class="co"><span class="pdot" style="background:${p.color}"></span>${esc(d.company)}</div><div class="amt">${fmtLKR(d.value)}</div><div class="fudate" style="color:${col}"><span class="d" style="background:${col}"></span>${relLabel(d.nextDate)}</div></div>`;
+    }).join('')||`<div style="font-size:11.5px;color:var(--faint);padding:6px 8px">—</div>`;
+    return `<div class="col"><div class="col-h"><span class="t" style="color:${s.color}">${s.name}</span><span class="v">${items.length} · ${fmtLKR(val)}</span></div>${cards}</div>`;
+  }).join('');
+  return `<div class="board">${cols}</div>`;
+}
+
+/* ---- ALL DEALS ---- */
+function viewDeals(){
+  let list=activeDeals().slice().sort((a,b)=>(a.nextDate||'9999').localeCompare(b.nextDate||'9999'));
+  const rows=list.map(d=>{
+    const p=prod(d.product),s=stg(d.stage),b=bucket(d.nextDate);
+    const cls=b==='over'?'r-over':b==='today'?'r-today':'';
+    return `<tr data-open="${d.id}">
+      <td><div class="co-cell"><span class="pdot" style="background:${p.color}"></span>${esc(d.company)}</div><div style="font-size:11px;color:var(--faint);margin-top:2px;padding-left:17px">${esc(d.contact||'')}</div></td>
+      <td>${p.name}</td>
+      <td><span class="st-badge" style="background:${s.soft};color:${s.color}">${s.name}</span></td>
+      <td class="mono">${fmtLKR(d.value)}</td>
+      <td>${esc(d.nextAction||'—')}</td>
+      <td class="mono ${cls}">${fmtDate(d.nextDate)}<div style="font-size:10px;font-weight:400;color:var(--faint)">${relLabel(d.nextDate)}</div></td>
+    </tr>`;
+  }).join('');
+  const empty=`<tr><td colspan="6" style="text-align:center;color:var(--faint);padding:40px">No deals match.</td></tr>`;
+  return `<table><thead><tr><th>Company</th><th>Product</th><th>Stage</th><th>Value</th><th>Next action</th><th>Follow-up</th></tr></thead><tbody>${rows||empty}</tbody></table>`;
+}
+
+function wireContent(){
+  document.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',e=>{
+    if(e.target.closest('[data-done]'))return;
+    openModal(el.getAttribute('data-open'));
+  }));
+  document.querySelectorAll('[data-done]').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();openDone(el.getAttribute('data-done'));}));
+}
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ================= DEAL MODAL ================= */
+function fillSelect(sel,items,val){sel.innerHTML=items.map(i=>`<option value="${i.id}" ${i.id===val?'selected':''}>${i.name}</option>`).join('');}
+function openModal(id){
+  state.editingId=id;
+  const d=id?deals.find(x=>x.id===id):null;
+  document.getElementById('modalTitle').textContent=d?'Edit deal':'New deal';
+  document.getElementById('fCompany').value=d?d.company:'';
+  document.getElementById('fContact').value=d?d.contact||'':'';
+  document.getElementById('fPhone').value=d?d.phone||'':'';
+  document.getElementById('fEmail').value=d?d.email||'':'';
+  document.getElementById('fValue').value=d?d.value||'':'';
+  fillSelect(document.getElementById('fProduct'),products,d?d.product:(state.product!=='all'?state.product:products[0].id));
+  fillSelect(document.getElementById('fStage'),STAGES,d?d.stage:'lead');
+  document.getElementById('fAction').value=d?d.nextAction||'':'';
+  document.getElementById('fDate').value=d?d.nextDate||'':todayStr();
+  document.getElementById('fNote').value='';
+  const logWrap=document.getElementById('logWrap');
+  document.getElementById('deleteBtn').classList.toggle('hide',!d);
+  if(d&&d.log&&d.log.length){logWrap.classList.remove('hide');document.getElementById('logList').innerHTML=d.log.slice().reverse().map(l=>`<div class="log-item"><span class="ld">${fmtDate(l.date)}</span><span class="lt">${esc(l.text)}</span></div>`).join('');}
+  else logWrap.classList.add('hide');
+  document.getElementById('dealOverlay').classList.add('show');
+}
+function closeModal(){document.getElementById('dealOverlay').classList.remove('show');state.editingId=null;}
+async function saveDeal(){
+  const company=document.getElementById('fCompany').value.trim();
+  if(!company){toast('Add a company name');return;}
+  const note=document.getElementById('fNote').value.trim();
+  const payload={
+    company,contact:document.getElementById('fContact').value.trim(),phone:document.getElementById('fPhone').value.trim(),
+    email:document.getElementById('fEmail').value.trim(),product:document.getElementById('fProduct').value,
+    stage:document.getElementById('fStage').value,value:Number(document.getElementById('fValue').value)||0,
+    nextAction:document.getElementById('fAction').value.trim(),nextDate:document.getElementById('fDate').value,updatedAt:Date.now()
+  };
+  if(state.editingId){
+    const d=deals.find(x=>x.id===state.editingId);Object.assign(d,payload);
+    if(note)d.log.push({date:todayStr(),text:note});
+  }else{
+    payload.id=uid();payload.createdAt=Date.now();payload.log=note?[{date:todayStr(),text:note}]:[];
+    deals.push(payload);
+  }
+  await persist();closeModal();renderProducts();render();toast('Saved');
+}
+async function deleteDeal(){
+  if(!state.editingId)return;
+  if(!confirm('Delete this deal permanently?'))return;
+  deals=deals.filter(d=>d.id!==state.editingId);
+  await persist();closeModal();renderProducts();render();toast('Deleted');
+}
+
+/* ================= DONE / RESCHEDULE ================= */
+function openDone(id){
+  state.doneId=id;const d=deals.find(x=>x.id===id);
+  document.getElementById('dNote').value='';
+  document.getElementById('dAction').value='';
+  const nd=new Date();nd.setDate(nd.getDate()+7);
+  document.getElementById('dDate').value=nd.toISOString().slice(0,10);
+  fillSelect(document.getElementById('dStage'),STAGES,d.stage);
+  document.getElementById('doneOverlay').classList.add('show');
+}
+function closeDone(){document.getElementById('doneOverlay').classList.remove('show');state.doneId=null;}
+async function saveDone(){
+  const d=deals.find(x=>x.id===state.doneId);if(!d)return;
+  const note=document.getElementById('dNote').value.trim();
+  const action=document.getElementById('dAction').value.trim();
+  const date=document.getElementById('dDate').value;
+  const stage=document.getElementById('dStage').value;
+  if(note)d.log.push({date:todayStr(),text:note});
+  d.stage=stage;d.nextAction=action;d.nextDate=date;d.updatedAt=Date.now();
+  await persist();closeDone();renderProducts();render();
+  toast(date?'Logged & rescheduled':'Logged');
+}
+
+/* ================= EXPORT / IMPORT ================= */
+function exportData(){
+  const blob=new Blob([JSON.stringify({products,deals,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='articcus-crm-backup-'+todayStr()+'.json';a.click();toast('Backup downloaded');
+}
+function importData(file){
+  const r=new FileReader();
+  r.onload=async()=>{
+    try{const o=JSON.parse(r.result);
+      if(o.deals)deals=o.deals; if(o.products)products=o.products;
+      await Store.set(PROD_KEY,products);await persist();
+      renderProducts();render();toast('Backup imported');
+    }catch(e){toast('Invalid file');}
+  };r.readAsText(file);
+}
+
+/* ================= BIND ================= */
+function bind(){
+  document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>{state.view=n.dataset.view;render();document.getElementById('side').classList.remove('open');});
+  document.getElementById('newBtn').onclick=()=>openModal(null);
+  document.getElementById('closeModal').onclick=closeModal;
+  document.getElementById('cancelBtn').onclick=closeModal;
+  document.getElementById('saveBtn').onclick=saveDeal;
+  document.getElementById('deleteBtn').onclick=deleteDeal;
+  document.getElementById('dealOverlay').onclick=e=>{if(e.target.id==='dealOverlay')closeModal();};
+  document.getElementById('closeDone').onclick=closeDone;
+  document.getElementById('cancelDone').onclick=closeDone;
+  document.getElementById('saveDone').onclick=saveDone;
+  document.getElementById('doneOverlay').onclick=e=>{if(e.target.id==='doneOverlay')closeDone();};
+  document.getElementById('searchInput').oninput=e=>{state.search=e.target.value;render();};
+  document.getElementById('exportBtn').onclick=exportData;
+  document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+  document.getElementById('importFile').onchange=e=>{if(e.target.files[0])importData(e.target.files[0]);};
+  document.getElementById('menuBtn').onclick=()=>document.getElementById('side').classList.toggle('open');
+}
+let toastT;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1900);}
+
+init();
+</script>
+</body>
+</html>
