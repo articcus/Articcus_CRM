@@ -40,8 +40,15 @@ class InvitationController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        if (User::where('email', $request->email)->exists()) {
-            return response()->json(['errors' => ['email' => ['This person already has an account.']]], 422);
+        // Someone who already has an account doesn't need to register again — inviting
+        // their email just grants them that role directly (e.g. promoting a rep to admin
+        // so they can manage team-wide work alongside their own).
+        $existingUser = User::where('email', $request->email)->first();
+
+        if ($existingUser) {
+            $existingUser->update(['role' => $request->role]);
+
+            return response()->json(['type' => 'role_updated', 'user' => $existingUser]);
         }
 
         $invitation = Invitation::create([
@@ -52,7 +59,7 @@ class InvitationController extends Controller
             'expires_at' => Carbon::now()->addDays(7),
         ]);
 
-        return response()->json($invitation->load('inviter'), 201);
+        return response()->json(['type' => 'invitation', ...$invitation->load('inviter')->toArray()], 201);
     }
 
     public function showByToken(string $token)

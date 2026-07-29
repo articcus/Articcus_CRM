@@ -32,6 +32,7 @@ export default function TeamPage() {
   const [inviting, setInviting] = useState(false)
   const [error, setError] = useState('')
   const [newLink, setNewLink] = useState('')
+  const [roleUpdateMessage, setRoleUpdateMessage] = useState('')
   const [copiedId, setCopiedId] = useState(null)
 
   async function fetchAll() {
@@ -56,6 +57,8 @@ export default function TeamPage() {
   async function handleInvite(e) {
     e.preventDefault()
     setError('')
+    setNewLink('')
+    setRoleUpdateMessage('')
     if (!email.trim()) {
       setError('Enter an email address.')
       return
@@ -64,8 +67,13 @@ export default function TeamPage() {
     setInviting(true)
     try {
       const { data } = await api.post('/invitations', { email: email.trim(), role })
-      const link = `${window.location.origin}/register?invite=${data.token}`
-      setNewLink(link)
+      if (data.type === 'role_updated') {
+        setRoleUpdateMessage(
+          `${data.user.name} (${data.user.email}) already had an account — set to ${data.user.role}.`
+        )
+      } else {
+        setNewLink(`${window.location.origin}/register?invite=${data.token}`)
+      }
       setEmail('')
       fetchAll()
     } catch (err) {
@@ -127,6 +135,12 @@ export default function TeamPage() {
           </button>
         </form>
         {error && <p className="text-xs text-rose-600 mt-2">{error}</p>}
+
+        {roleUpdateMessage && (
+          <div className="mt-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-[9px] px-3 py-2.5">
+            {roleUpdateMessage}
+          </div>
+        )}
 
         {newLink && (
           <div className="mt-3 flex items-center gap-2 bg-indigo-50 rounded-[9px] px-3 py-2.5">

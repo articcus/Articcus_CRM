@@ -119,6 +119,14 @@ can't be changed on the registration form) and role; accepting it consumes it. A
 can't be reused, and expires after 7 days. The very first admin account (already in the
 seeded data) can invite everyone else — there's no bootstrapping problem.
 
+**Inviting an email that already has an account changes that user's role directly** instead
+of rejecting the request — there's nothing to "accept" since they already have credentials.
+This is how you promote someone who self-registered via Google (as a `rep`, the default) up
+to `admin` — enter their email on `/team` with the `admin` role, and it takes effect
+immediately, no separate token/registration step, so they can manage team-wide work alongside
+whatever they already had as a rep. No invitation record is created for this path; the Team
+page shows a confirmation instead of a shareable link.
+
 **"Continue with Google" auto-registers**, invite or not — a brand-new Google account (no
 existing user by that `firebase_uid`/email) always gets created rather than rejected, since
 signing in with a real Google account is itself a form of identity verification. If a pending
