@@ -9,6 +9,7 @@ export default function QuickCreateSelect({
   getLabel = (o) => o.name,
   placeholder = 'None',
   onCreate,
+  onCreated,
   createPlaceholder = 'Name',
   required = false,
   error,
@@ -19,7 +20,10 @@ export default function QuickCreateSelect({
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
-  const allOptions = [...options, ...extra]
+  // `extra` is an immediate local fallback so the new option renders in this
+  // dropdown right away; `onCreated` lets the parent page persist it into its
+  // own list so it's still there the next time a picker is opened elsewhere.
+  const allOptions = [...options, ...extra.filter((e) => !options.some((o) => o.id === e.id))]
 
   async function handleCreate() {
     if (!newName.trim()) return
@@ -28,6 +32,7 @@ export default function QuickCreateSelect({
     try {
       const created = await onCreate(newName.trim())
       setExtra((prev) => [...prev, created])
+      onCreated?.(created)
       onChange(String(created.id))
       setNewName('')
       setAdding(false)

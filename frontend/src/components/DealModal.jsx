@@ -32,6 +32,8 @@ export default function DealModal({
   onClose,
   onSave,
   onDelete,
+  onContactCreated,
+  onProjectCreated,
 }) {
   const [form, setForm] = useState(emptyForm)
   const [errors, setErrors] = useState({})
@@ -116,6 +118,7 @@ export default function DealModal({
             placeholder="Select a contact..."
             createPlaceholder="Contact name"
             onCreate={(name) => api.post('/contacts', { name }).then((r) => r.data)}
+            onCreated={onContactCreated}
             error={fieldError('contact_id')}
           />
 
@@ -127,6 +130,7 @@ export default function DealModal({
             placeholder="No project"
             createPlaceholder="Project name"
             onCreate={(name) => api.post('/projects', { name }).then((r) => r.data)}
+            onCreated={onProjectCreated}
           />
 
           <div className="grid grid-cols-2 gap-3">

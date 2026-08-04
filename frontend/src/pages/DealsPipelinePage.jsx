@@ -81,7 +81,7 @@ export default function DealsPipelinePage() {
 
   useEffect(() => {
     fetchDeals()
-    api.get('/contacts').then(({ data }) => setContacts(data.data))
+    api.get('/contacts', { params: { per_page: 200 } }).then(({ data }) => setContacts(data.data))
     api.get('/projects').then(({ data }) => setProjects(data))
     if (isAdmin) {
       api.get('/users').then(({ data }) => setUsers(data))
@@ -184,6 +184,8 @@ export default function DealsPipelinePage() {
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
           onDelete={handleDelete}
+          onContactCreated={(c) => setContacts((prev) => [c, ...prev])}
+          onProjectCreated={(p) => setProjects((prev) => [p, ...prev])}
         />
       )}
     </div>

@@ -27,7 +27,12 @@ class ContactController extends Controller
             $query->where('company_id', $companyId);
         }
 
-        return response()->json($query->paginate(15));
+        $perPage = (int) $request->query('per_page', 15);
+        if ($perPage < 1 || $perPage > 200) {
+            $perPage = 15;
+        }
+
+        return response()->json($query->paginate($perPage));
     }
 
     public function store(Request $request)

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import LogFollowUpModal from '../components/LogFollowUpModal'
 import DealModal from '../components/DealModal'
 import ContactModal from '../components/ContactModal'
+import TaskDetailModal from '../components/TaskDetailModal'
 import { formatCurrencyCompact } from '../lib/format'
 
 const STAGE_COLOR = {
@@ -75,6 +76,7 @@ export default function FollowUpsPage() {
   const [loggingActivity, setLoggingActivity] = useState(null)
   const [openingDeal, setOpeningDeal] = useState(null)
   const [openingContact, setOpeningContact] = useState(null)
+  const [viewingActivity, setViewingActivity] = useState(null)
 
   async function fetchAll() {
     setLoading(true)
@@ -92,8 +94,8 @@ export default function FollowUpsPage() {
 
   useEffect(() => {
     fetchAll()
-    api.get('/contacts').then(({ data }) => setContacts(data.data))
-    api.get('/companies').then(({ data }) => setCompanies(data.data))
+    api.get('/contacts', { params: { per_page: 200 } }).then(({ data }) => setContacts(data.data))
+    api.get('/companies', { params: { per_page: 200 } }).then(({ data }) => setCompanies(data.data))
     api.get('/projects').then(({ data }) => setProjects(data))
     if (isAdmin) {
       api.get('/users').then(({ data }) => setUsers(data))
@@ -234,7 +236,8 @@ export default function FollowUpsPage() {
                     return (
                       <div
                         key={activity.id}
-                        className="bg-white border border-slate-200 rounded-xl px-4 py-3.5 flex items-center gap-3.5 mb-2 shadow-[0_1px_2px_rgba(20,24,35,.04),0_8px_24px_rgba(20,24,35,.06)] hover:border-slate-300 transition"
+                        onClick={() => setViewingActivity(activity)}
+                        className="bg-white border border-slate-200 rounded-xl px-4 py-3.5 flex items-center gap-3.5 mb-2 shadow-[0_1px_2px_rgba(20,24,35,.04),0_8px_24px_rgba(20,24,35,.06)] hover:border-slate-300 cursor-pointer transition"
                       >
                         <div
                           className="border-l-[3px] pl-3.5 min-w-0 flex-1"
@@ -263,15 +266,21 @@ export default function FollowUpsPage() {
                         </div>
                         <div className="flex gap-1.5 shrink-0">
                           <button
-                            onClick={() => setLoggingActivity(activity)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setLoggingActivity(activity)
+                            }}
                             title="Log touch & reschedule"
                             className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition"
                           >
                             <Check size={15} strokeWidth={2.4} />
                           </button>
                           <button
-                            onClick={() => openItem(activity)}
-                            title="Open"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openItem(activity)
+                            }}
+                            title="Open deal/contact"
                             className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
                           >
                             <ExternalLink size={14} strokeWidth={2} />
@@ -285,6 +294,15 @@ export default function FollowUpsPage() {
             })
           )}
         </>
+      )}
+
+      {viewingActivity && (
+        <TaskDetailModal
+          activity={viewingActivity}
+          onClose={() => setViewingActivity(null)}
+          onUpdated={fetchAll}
+          onDeleted={fetchAll}
+        />
       )}
 
       {loggingActivity && (
@@ -308,6 +326,8 @@ export default function FollowUpsPage() {
           onClose={() => setOpeningDeal(null)}
           onSave={handleDealSave}
           onDelete={handleDealDelete}
+          onContactCreated={(c) => setContacts((prev) => [c, ...prev])}
+          onProjectCreated={(p) => setProjects((prev) => [p, ...prev])}
         />
       )}
 
@@ -319,6 +339,7 @@ export default function FollowUpsPage() {
           isAdmin={isAdmin}
           onClose={() => setOpeningContact(null)}
           onSave={handleContactSave}
+          onCompanyCreated={(c) => setCompanies((prev) => [c, ...prev])}
         />
       )}
     </div>

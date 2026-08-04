@@ -20,6 +20,7 @@ export default function ContactModal({
   isAdmin,
   onClose,
   onSave,
+  onCompanyCreated,
 }) {
   const [form, setForm] = useState(emptyForm)
   const [errors, setErrors] = useState({})
@@ -92,6 +93,7 @@ export default function ContactModal({
             placeholder="No company"
             createPlaceholder="Company name"
             onCreate={(name) => api.post('/companies', { name }).then((r) => r.data)}
+            onCreated={onCompanyCreated}
           />
 
           <div className="grid grid-cols-2 gap-3">

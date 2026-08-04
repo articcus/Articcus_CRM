@@ -55,7 +55,7 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     fetchProject()
-    api.get('/contacts').then(({ data }) => setContacts(data.data))
+    api.get('/contacts', { params: { per_page: 200 } }).then(({ data }) => setContacts(data.data))
     api.get('/projects').then(({ data }) => setProjects(data))
     if (isAdmin) {
       api.get('/users').then(({ data }) => setUsers(data))
@@ -244,6 +244,8 @@ export default function ProjectDetailPage() {
           isAdmin={isAdmin}
           onClose={() => setAddingDeal(false)}
           onSave={handleAddDeal}
+          onContactCreated={(c) => setContacts((prev) => [c, ...prev])}
+          onProjectCreated={(p) => setProjects((prev) => [p, ...prev])}
         />
       )}
 
@@ -257,6 +259,8 @@ export default function ProjectDetailPage() {
           onClose={() => setEditingDeal(null)}
           onSave={handleEditDeal}
           onDelete={handleDeleteDeal}
+          onContactCreated={(c) => setContacts((prev) => [c, ...prev])}
+          onProjectCreated={(p) => setProjects((prev) => [p, ...prev])}
         />
       )}
     </div>

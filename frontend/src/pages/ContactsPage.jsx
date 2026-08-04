@@ -39,7 +39,7 @@ export default function ContactsPage() {
   }
 
   useEffect(() => {
-    api.get('/companies').then(({ data }) => setCompanies(data.data))
+    api.get('/companies', { params: { per_page: 200 } }).then(({ data }) => setCompanies(data.data))
     if (isAdmin) {
       api.get('/users').then(({ data }) => setUsers(data))
     }
@@ -188,6 +188,7 @@ export default function ContactsPage() {
           isAdmin={isAdmin}
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
+          onCompanyCreated={(c) => setCompanies((prev) => [c, ...prev])}
         />
       )}
     </div>
