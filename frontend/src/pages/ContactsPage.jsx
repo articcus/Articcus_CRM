@@ -3,6 +3,11 @@ import { Search, Plus, Pencil, Trash2 } from 'lucide-react'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import ContactModal from '../components/ContactModal'
+import {
+  LEAD_STATUSES,
+  LEAD_STATUS_LABELS,
+  LEAD_STATUS_BADGE_CLASSES,
+} from '../lib/leadStatus'
 
 function initials(name) {
   if (!name) return '?'
@@ -23,6 +28,7 @@ export default function ContactsPage() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [leadStatusFilter, setLeadStatusFilter] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingContact, setEditingContact] = useState(null)
 
@@ -30,7 +36,7 @@ export default function ContactsPage() {
     setLoading(true)
     try {
       const { data } = await api.get('/contacts', {
-        params: { search: search || undefined },
+        params: { search: search || undefined, lead_status: leadStatusFilter || undefined },
       })
       setContacts(data.data)
     } finally {
@@ -50,7 +56,7 @@ export default function ContactsPage() {
     const timeout = setTimeout(fetchContacts, 300)
     return () => clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search])
+  }, [search, leadStatusFilter])
 
   function openAddModal() {
     setEditingContact(null)
@@ -68,13 +74,24 @@ export default function ContactsPage() {
       company_id: form.company_id || null,
       owner_id: form.owner_id || null,
     }
-    if (editingContact) {
-      await api.put(`/contacts/${editingContact.id}`, payload)
-    } else {
-      await api.post('/contacts', payload)
-    }
+    const wasOpportunity = editingContact?.lead_status === 'opportunity'
+
+    const { data: contact } = editingContact
+      ? await api.put(`/contacts/${editingContact.id}`, payload)
+      : await api.post('/contacts', payload)
+
     setModalOpen(false)
     fetchContacts()
+
+    if (contact.lead_status === 'opportunity' && !wasOpportunity) {
+      if (confirm(`${contact.name} just became an Opportunity. Create a deal for them now?`)) {
+        await api.post('/deals', {
+          contact_id: contact.id,
+          title: `${contact.name} opportunity`,
+          stage: 'qualified',
+        })
+      }
+    }
   }
 
   async function handleDelete(contact) {
@@ -86,17 +103,31 @@ export default function ContactsPage() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="relative w-72">
-          <Search
-            size={16}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-          <input
-            placeholder="Search contacts..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-[10px] border border-slate-200 pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-indigo-600 transition"
-          />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-72">
+            <Search
+              size={16}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              placeholder="Search contacts..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-[10px] border border-slate-200 pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-indigo-600 transition"
+            />
+          </div>
+          <select
+            value={leadStatusFilter}
+            onChange={(e) => setLeadStatusFilter(e.target.value)}
+            className="rounded-[10px] border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-600 transition"
+          >
+            <option value="">All statuses</option>
+            {LEAD_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {LEAD_STATUS_LABELS[status]}
+              </option>
+            ))}
+          </select>
         </div>
         <button
           onClick={openAddModal}
@@ -112,6 +143,7 @@ export default function ContactsPage() {
             <tr>
               <th className="font-mono text-[10px] tracking-[.08em] uppercase text-slate-400 px-5 py-3 font-bold">Name</th>
               <th className="font-mono text-[10px] tracking-[.08em] uppercase text-slate-400 px-5 py-3 font-bold">Company</th>
+              <th className="font-mono text-[10px] tracking-[.08em] uppercase text-slate-400 px-5 py-3 font-bold">Status</th>
               <th className="font-mono text-[10px] tracking-[.08em] uppercase text-slate-400 px-5 py-3 font-bold">Email</th>
               <th className="font-mono text-[10px] tracking-[.08em] uppercase text-slate-400 px-5 py-3 font-bold">Phone</th>
               <th className="font-mono text-[10px] tracking-[.08em] uppercase text-slate-400 px-5 py-3 font-bold">Owner</th>
@@ -121,14 +153,14 @@ export default function ContactsPage() {
           <tbody className="divide-y divide-slate-50">
             {loading && (
               <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-5 py-8 text-center text-slate-400">
                   Loading...
                 </td>
               </tr>
             )}
             {!loading && contacts.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-5 py-8 text-center text-slate-400">
                   No contacts yet.
                 </td>
               </tr>
@@ -148,6 +180,13 @@ export default function ContactsPage() {
                   </td>
                   <td className="px-5 py-3 text-slate-600">
                     {contact.company?.name || '—'}
+                  </td>
+                  <td className="px-5 py-3">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${LEAD_STATUS_BADGE_CLASSES[contact.lead_status] || LEAD_STATUS_BADGE_CLASSES.mql}`}
+                    >
+                      {LEAD_STATUS_LABELS[contact.lead_status] || LEAD_STATUS_LABELS.mql}
+                    </span>
                   </td>
                   <td className="px-5 py-3 text-slate-600">
                     {contact.email || '—'}

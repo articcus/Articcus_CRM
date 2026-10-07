@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react'
-import { Search, Plus, Pencil, Trash2, Building2 } from 'lucide-react'
+import { Search, Plus, Pencil, Trash2, Building2, CalendarPlus } from 'lucide-react'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import CompanyModal from '../components/CompanyModal'
+import AddFollowUpModal from '../components/AddFollowUpModal'
 
 export default function CompaniesPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
 
   const [companies, setCompanies] = useState([])
+  const [contacts, setContacts] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingCompany, setEditingCompany] = useState(null)
+  const [followUpCompanyId, setFollowUpCompanyId] = useState(null)
 
   async function fetchCompanies() {
     setLoading(true)
@@ -28,6 +31,7 @@ export default function CompaniesPage() {
   }
 
   useEffect(() => {
+    api.get('/contacts', { params: { per_page: 200 } }).then(({ data }) => setContacts(data.data))
     if (isAdmin) {
       api.get('/users').then(({ data }) => setUsers(data))
     }
@@ -145,6 +149,13 @@ export default function CompaniesPage() {
                   <td className="px-5 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
+                        onClick={() => setFollowUpCompanyId(company.id)}
+                        title="Add follow-up"
+                        className="p-2 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                      >
+                        <CalendarPlus size={15} />
+                      </button>
+                      <button
                         onClick={() => openEditModal(company)}
                         className="p-2 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
                       >
@@ -171,6 +182,16 @@ export default function CompaniesPage() {
           isAdmin={isAdmin}
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
+        />
+      )}
+
+      {followUpCompanyId && (
+        <AddFollowUpModal
+          contacts={contacts}
+          companyId={followUpCompanyId}
+          onClose={() => setFollowUpCompanyId(null)}
+          onSaved={() => setFollowUpCompanyId(null)}
+          onContactCreated={(c) => setContacts((prev) => [c, ...prev])}
         />
       )}
     </div>

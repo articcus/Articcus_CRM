@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\AuthorizesOwnership;
 use App\Models\Activity;
+use App\Models\Contact;
 use App\Models\Deal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -16,10 +17,29 @@ class DashboardController extends Controller
 
     private const ALL_STAGES = ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'];
 
+    private const LEAD_STATUSES = ['mql', 'sql', 'opportunity'];
+
+    // Combined lead-to-deal funnel, in stage order. Deal stages 'new'/'contacted' don't get
+    // their own funnel row (they're pre-qualification, same as having an Opportunity) so they
+    // fold into the 'opportunity' rank rather than inflating a stage the funnel doesn't show.
+    private const FUNNEL_STAGES = ['mql', 'sql', 'opportunity', 'qualified', 'proposal', 'won'];
+
+    private const FUNNEL_RANKS = [
+        'mql' => 0,
+        'sql' => 1,
+        'opportunity' => 2,
+        'new' => 2,
+        'contacted' => 2,
+        'qualified' => 3,
+        'proposal' => 4,
+        'won' => 5,
+    ];
+
     public function index(Request $request)
     {
         $deals = fn () => $this->scopeToOwner(Deal::query(), $request);
         $activities = fn () => $this->scopeToOwner(Activity::query(), $request);
+        $contacts = fn () => $this->scopeToOwner(Contact::query(), $request);
 
         $openPipeline = $deals()->whereIn('stage', self::OPEN_STAGES)
             ->selectRaw('COUNT(*) as count, COALESCE(SUM(value), 0) as value')
@@ -78,6 +98,11 @@ class DashboardController extends Controller
             ];
         })->values();
 
+        $leadFunnel = collect(self::LEAD_STATUSES)->map(fn ($status) => [
+            'status' => $status,
+            'count' => $contacts()->where('lead_status', $status)->count(),
+        ]);
+
         $overdueTasks = $activities()->whereNull('completed_at')
             ->where('due_at', '<', now())
             ->count();
@@ -95,10 +120,70 @@ class DashboardController extends Controller
             'won_this_month_value' => (float) $wonThisMonth->value,
             'won_this_month_count' => (int) $wonThisMonth->count,
             'pipeline_by_stage' => $pipelineByStage,
+            'lead_funnel' => $leadFunnel,
             'revenue_by_rep' => $revenueByRep,
             'monthly_revenue' => $monthlyRevenue,
             'overdue_tasks_count' => $overdueTasks,
             'upcoming_tasks_count' => $upcomingTasks,
+        ]);
+    }
+
+    /**
+     * The full MQL -> SQL -> Opportunity -> Qualified -> Proposal -> Won funnel.
+     *
+     * Counts are cumulative ("reached this stage or later"), computed from each contact's
+     * current lead_status and the most-advanced non-lost deal they have — this schema has no
+     * stage-history log, so a contact's *current* furthest position is the best available proxy
+     * for "how far they got". Lost deals are excluded from that reach calculation (we can't know
+     * how far a lost deal got before it was marked lost) and are reported separately instead.
+     */
+    public function funnel(Request $request)
+    {
+        $contacts = $this->scopeToOwner(Contact::query(), $request)
+            ->with(['deals' => fn ($q) => $q->where('stage', '!=', 'lost')])
+            ->get();
+
+        $reached = array_fill(0, count(self::FUNNEL_STAGES), 0);
+
+        foreach ($contacts as $contact) {
+            $rank = self::FUNNEL_RANKS[$contact->lead_status] ?? 0;
+            foreach ($contact->deals as $deal) {
+                $rank = max($rank, self::FUNNEL_RANKS[$deal->stage] ?? $rank);
+            }
+            for ($i = 0; $i <= $rank; $i++) {
+                $reached[$i]++;
+            }
+        }
+
+        $deals = fn () => $this->scopeToOwner(Deal::query(), $request);
+
+        $valueByStage = collect(['qualified', 'proposal', 'won'])->mapWithKeys(
+            fn ($stage) => [$stage => (float) $deals()->where('stage', $stage)->sum('value')]
+        );
+
+        $rows = collect(self::FUNNEL_STAGES)->map(fn ($stage, $i) => [
+            'stage' => $stage,
+            'count' => $reached[$i],
+            'value' => $valueByStage->get($stage),
+        ])->values()->all();
+
+        foreach ($rows as $i => &$row) {
+            $next = $rows[$i + 1] ?? null;
+            $row['conversion_to_next'] = $next && $row['count'] > 0
+                ? round($next['count'] / $row['count'] * 100, 1)
+                : null;
+        }
+        unset($row);
+
+        $lost = $deals()->where('stage', 'lost')
+            ->selectRaw('COUNT(*) as count, COALESCE(SUM(value), 0) as value')
+            ->first();
+
+        return response()->json([
+            'stages' => $rows,
+            'total_contacts' => $contacts->count(),
+            'lost_count' => (int) $lost->count,
+            'lost_value' => (float) $lost->value,
         ]);
     }
 }

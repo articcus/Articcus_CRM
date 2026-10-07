@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Check, ExternalLink } from 'lucide-react'
+import { Check, ExternalLink, CalendarPlus } from 'lucide-react'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import LogFollowUpModal from '../components/LogFollowUpModal'
 import DealModal from '../components/DealModal'
 import ContactModal from '../components/ContactModal'
 import TaskDetailModal from '../components/TaskDetailModal'
+import AddFollowUpModal from '../components/AddFollowUpModal'
 import { formatCurrencyCompact } from '../lib/format'
 
 const STAGE_COLOR = {
@@ -77,6 +78,7 @@ export default function FollowUpsPage() {
   const [openingDeal, setOpeningDeal] = useState(null)
   const [openingContact, setOpeningContact] = useState(null)
   const [viewingActivity, setViewingActivity] = useState(null)
+  const [addingFollowUp, setAddingFollowUp] = useState(false)
 
   async function fetchAll() {
     setLoading(true)
@@ -154,6 +156,18 @@ export default function FollowUpsPage() {
         <p className="text-sm text-slate-400">Loading...</p>
       ) : (
         <>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-xl font-bold tracking-tight text-slate-900">
+              Follow-ups
+            </h2>
+            <button
+              onClick={() => setAddingFollowUp(true)}
+              className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-[10px] hover:bg-indigo-700 transition"
+            >
+              <CalendarPlus size={16} strokeWidth={2.5} /> Add follow-up
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-7">
             <div className="bg-white border border-slate-200 rounded-[14px] p-4 shadow-[0_1px_2px_rgba(20,24,35,.04),0_8px_24px_rgba(20,24,35,.06)]">
               <div className="font-mono text-[10px] tracking-[.1em] uppercase text-slate-400 flex items-center gap-1.5">
@@ -340,6 +354,18 @@ export default function FollowUpsPage() {
           onClose={() => setOpeningContact(null)}
           onSave={handleContactSave}
           onCompanyCreated={(c) => setCompanies((prev) => [c, ...prev])}
+        />
+      )}
+
+      {addingFollowUp && (
+        <AddFollowUpModal
+          contacts={contacts}
+          onClose={() => setAddingFollowUp(false)}
+          onSaved={() => {
+            setAddingFollowUp(false)
+            fetchAll()
+          }}
+          onContactCreated={(c) => setContacts((prev) => [c, ...prev])}
         />
       )}
     </div>

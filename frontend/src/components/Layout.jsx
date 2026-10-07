@@ -7,6 +7,7 @@ import {
   Building2,
   Users,
   LayoutDashboard,
+  Filter,
   LogOut,
   Plus,
   UsersRound,
@@ -21,6 +22,7 @@ const NAV = [
   { to: '/deals', label: 'All deals', icon: Rows3 },
   { to: '/companies', label: 'Companies', icon: Building2 },
   { to: '/contacts', label: 'Contacts', icon: Users },
+  { to: '/funnel', label: 'Sales funnel', icon: Filter },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
 ]
 

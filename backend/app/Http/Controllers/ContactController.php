@@ -11,6 +11,8 @@ class ContactController extends Controller
 {
     use AuthorizesOwnership;
 
+    private const LEAD_STATUSES = ['mql', 'sql', 'opportunity'];
+
     public function index(Request $request)
     {
         $query = Contact::query()->with('company', 'owner')->latest();
@@ -27,6 +29,10 @@ class ContactController extends Controller
             $query->where('company_id', $companyId);
         }
 
+        if ($leadStatus = $request->query('lead_status')) {
+            $query->where('lead_status', $leadStatus);
+        }
+
         $perPage = (int) $request->query('per_page', 15);
         if ($perPage < 1 || $perPage > 200) {
             $perPage = 15;
@@ -39,6 +45,7 @@ class ContactController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'company_id' => ['nullable', 'exists:companies,id'],
+            'lead_status' => ['nullable', 'in:'.implode(',', self::LEAD_STATUSES)],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
@@ -74,6 +81,7 @@ class ContactController extends Controller
 
         $validator = Validator::make($request->all(), [
             'company_id' => ['nullable', 'exists:companies,id'],
+            'lead_status' => ['sometimes', 'in:'.implode(',', self::LEAD_STATUSES)],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],

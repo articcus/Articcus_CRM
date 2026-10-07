@@ -15,7 +15,7 @@ class ActivityController extends Controller
 
     public function index(Request $request)
     {
-        $query = Activity::query()->with('contact.company', 'deal', 'owner')->latest();
+        $query = Activity::query()->with('contact.company', 'deal.project', 'deal.owner', 'owner')->latest();
         $this->scopeToOwner($query, $request);
 
         if ($contactId = $request->query('contact_id')) {
@@ -58,7 +58,7 @@ class ActivityController extends Controller
 
         $activity = Activity::create($data);
 
-        return response()->json($activity->load('contact.company', 'deal', 'owner'), 201);
+        return response()->json($activity->load('contact.company', 'deal.project', 'deal.owner', 'owner'), 201);
     }
 
     public function update(Request $request, Activity $activity)
@@ -86,7 +86,7 @@ class ActivityController extends Controller
 
         $activity->update($data);
 
-        return response()->json($activity->load('contact.company', 'deal', 'owner'));
+        return response()->json($activity->load('contact.company', 'deal.project', 'deal.owner', 'owner'));
     }
 
     public function complete(Request $request, Activity $activity)
@@ -97,7 +97,7 @@ class ActivityController extends Controller
             'completed_at' => $activity->completed_at ? null : now(),
         ]);
 
-        return response()->json($activity->load('contact.company', 'deal', 'owner'));
+        return response()->json($activity->load('contact.company', 'deal.project', 'deal.owner', 'owner'));
     }
 
     public function destroy(Request $request, Activity $activity)

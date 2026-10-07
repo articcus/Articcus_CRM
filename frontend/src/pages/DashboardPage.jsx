@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react'
-import { Briefcase, Target, DollarSign, ListChecks, ChevronRight, MoreHorizontal } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Briefcase, Target, DollarSign, ListChecks, ChevronRight } from 'lucide-react'
 import api from '../api/client'
+import { useAuth } from '../context/AuthContext'
 import StatTile from '../components/StatTile'
 import PipelineByStageChart from '../components/PipelineByStageChart'
+import LeadFunnelChart from '../components/LeadFunnelChart'
 import RevenueByRepChart from '../components/RevenueByRepChart'
 import MonthlyRevenueChart from '../components/MonthlyRevenueChart'
 import SemiCircleGauge from '../components/SemiCircleGauge'
 import DonutChart from '../components/DonutChart'
+import DealModal from '../components/DealModal'
+import TaskDetailModal from '../components/TaskDetailModal'
 import { MiniBars, MiniSparkline } from '../components/MiniCharts'
 import { formatCurrencyCompact } from '../lib/format'
 
@@ -30,29 +35,68 @@ function initials(name) {
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+
   const [data, setData] = useState(null)
   const [upcoming, setUpcoming] = useState([])
   const [recentDeals, setRecentDeals] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    Promise.all([
+  const [contacts, setContacts] = useState([])
+  const [projects, setProjects] = useState([])
+  const [users, setUsers] = useState([])
+  const [openingDeal, setOpeningDeal] = useState(null)
+  const [viewingActivity, setViewingActivity] = useState(null)
+
+  async function fetchDashboard() {
+    const [dashboardRes, activitiesRes, dealsRes] = await Promise.all([
       api.get('/dashboard'),
       api.get('/activities', { params: { status: 'pending' } }),
       api.get('/deals'),
-    ]).then(([dashboardRes, activitiesRes, dealsRes]) => {
-      setData(dashboardRes.data)
+    ])
+    setData(dashboardRes.data)
 
-      const sorted = [...activitiesRes.data.data].sort((a, b) => {
-        if (!a.due_at) return 1
-        if (!b.due_at) return -1
-        return new Date(a.due_at) - new Date(b.due_at)
-      })
-      setUpcoming(sorted.slice(0, 3))
-      setRecentDeals(dealsRes.data.data.slice(0, 5))
-      setLoading(false)
+    const sorted = [...activitiesRes.data.data].sort((a, b) => {
+      if (!a.due_at) return 1
+      if (!b.due_at) return -1
+      return new Date(a.due_at) - new Date(b.due_at)
     })
-  }, [])
+    setUpcoming(sorted.slice(0, 3))
+    setRecentDeals(dealsRes.data.data.slice(0, 5))
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchDashboard()
+    api.get('/contacts', { params: { per_page: 200 } }).then(({ data }) => setContacts(data.data))
+    api.get('/projects').then(({ data }) => setProjects(data))
+    if (isAdmin) {
+      api.get('/users').then(({ data }) => setUsers(data))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin])
+
+  async function handleDealSave(form) {
+    const payload = {
+      ...form,
+      project_id: form.project_id || null,
+      value: form.value || 0,
+      expected_close_date: form.expected_close_date || null,
+      owner_id: form.owner_id || null,
+    }
+    await api.put(`/deals/${openingDeal.id}`, payload)
+    setOpeningDeal(null)
+    fetchDashboard()
+  }
+
+  async function handleDealDelete(deal) {
+    if (!confirm(`Delete "${deal.title}"?`)) return
+    await api.delete(`/deals/${deal.id}`)
+    setOpeningDeal(null)
+    fetchDashboard()
+  }
 
   if (loading || !data) {
     return <p className="text-sm text-slate-400 py-8">Loading...</p>
@@ -71,25 +115,28 @@ export default function DashboardPage() {
           label="Open pipeline"
           icon={Briefcase}
           value={formatCurrencyCompact(data.open_pipeline_value)}
-          sub={`${data.open_pipeline_count} open deals`}
+          sub={`${data.open_pipeline_count} open deals — view pipeline`}
           subTone="good"
           chart={<MiniBars values={openStageBars.length ? openStageBars : [1]} />}
+          onClick={() => navigate('/pipeline')}
         />
         <StatTile
           label="Win rate"
           icon={Target}
           value={data.win_rate === null ? '—' : `${winRate}%`}
-          sub={`${data.won_count} won / ${data.lost_count} lost`}
+          sub={`${data.won_count} won / ${data.lost_count} lost — view funnel`}
           subTone={data.win_rate === null ? 'muted' : winRate >= 50 ? 'good' : 'critical'}
           chart={<MiniBars values={[data.won_count || 0, data.lost_count || 0]} highlightLast={1} />}
+          onClick={() => navigate('/funnel')}
         />
         <StatTile
           label="Won this month"
           icon={DollarSign}
           value={formatCurrencyCompact(data.won_this_month_value)}
-          sub={`${data.won_this_month_count} deals closed`}
+          sub={`${data.won_this_month_count} deals closed — view deals`}
           subTone="good"
           chart={<MiniSparkline values={monthlyBars.length ? monthlyBars : [0, 0]} />}
+          onClick={() => navigate('/deals')}
         />
         <StatTile
           label="Tasks due"
@@ -97,8 +144,8 @@ export default function DashboardPage() {
           value={data.upcoming_tasks_count}
           sub={
             data.overdue_tasks_count > 0
-              ? `${data.overdue_tasks_count} overdue`
-              : 'none overdue'
+              ? `${data.overdue_tasks_count} overdue — view follow-ups`
+              : 'none overdue — view follow-ups'
           }
           subTone={data.overdue_tasks_count > 0 ? 'critical' : 'muted'}
           chart={
@@ -107,6 +154,7 @@ export default function DashboardPage() {
               highlightLast={1}
             />
           }
+          onClick={() => navigate('/')}
         />
       </div>
 
@@ -137,7 +185,12 @@ export default function DashboardPage() {
         <div className="bg-white border border-slate-200 rounded-[14px] p-4 shadow-[0_1px_2px_rgba(20,24,35,.04),0_8px_24px_rgba(20,24,35,.06)]">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display font-bold text-sm tracking-tight">Upcoming tasks</h3>
-            <MoreHorizontal size={16} className="text-slate-300" />
+            <button
+              onClick={() => navigate('/')}
+              className="text-[11.5px] font-semibold text-indigo-600 hover:text-indigo-700"
+            >
+              View all
+            </button>
           </div>
           {upcoming.length === 0 ? (
             <p className="text-sm text-slate-400">Nothing due soon.</p>
@@ -148,7 +201,8 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={activity.id}
-                    className="flex items-center gap-3 rounded-xl hover:bg-slate-50 p-2 -mx-2 transition"
+                    onClick={() => setViewingActivity(activity)}
+                    className="flex items-center gap-3 rounded-xl hover:bg-slate-50 p-2 -mx-2 cursor-pointer transition"
                   >
                     <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex flex-col items-center justify-center leading-none shrink-0">
                       <span className="text-[10px] font-medium uppercase">
@@ -190,12 +244,16 @@ export default function DashboardPage() {
                   <th className="font-mono text-[10px] tracking-[.08em] uppercase text-slate-400 font-bold pb-2">Deal</th>
                   <th className="font-mono text-[10px] tracking-[.08em] uppercase text-slate-400 font-bold pb-2">Value</th>
                   <th className="font-mono text-[10px] tracking-[.08em] uppercase text-slate-400 font-bold pb-2">Stage</th>
-                  <th className="font-mono text-[10px] tracking-[.08em] uppercase text-slate-400 font-bold pb-2 text-right">Action</th>
+                  <th className="font-mono text-[10px] tracking-[.08em] uppercase text-slate-400 font-bold pb-2 text-right"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {recentDeals.map((deal) => (
-                  <tr key={deal.id}>
+                  <tr
+                    key={deal.id}
+                    onClick={() => setOpeningDeal(deal)}
+                    className="cursor-pointer hover:bg-slate-50 transition"
+                  >
                     <td className="py-2.5">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 text-xs font-semibold flex items-center justify-center shrink-0">
@@ -220,7 +278,7 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="py-2.5 text-right">
-                      <MoreHorizontal size={16} className="text-slate-300 inline" />
+                      <ChevronRight size={16} className="text-slate-300 inline" />
                     </td>
                   </tr>
                 ))}
@@ -258,10 +316,35 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <LeadFunnelChart data={data.lead_funnel} />
         <PipelineByStageChart data={data.pipeline_by_stage} />
         <RevenueByRepChart data={data.revenue_by_rep} />
       </div>
+
+      {openingDeal && (
+        <DealModal
+          deal={openingDeal}
+          contacts={contacts}
+          projects={projects}
+          users={users}
+          isAdmin={isAdmin}
+          onClose={() => setOpeningDeal(null)}
+          onSave={handleDealSave}
+          onDelete={handleDealDelete}
+          onContactCreated={(c) => setContacts((prev) => [c, ...prev])}
+          onProjectCreated={(p) => setProjects((prev) => [p, ...prev])}
+        />
+      )}
+
+      {viewingActivity && (
+        <TaskDetailModal
+          activity={viewingActivity}
+          onClose={() => setViewingActivity(null)}
+          onUpdated={fetchDashboard}
+          onDeleted={fetchDashboard}
+        />
+      )}
     </div>
   )
 }

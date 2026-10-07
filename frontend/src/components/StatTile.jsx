@@ -1,4 +1,4 @@
-export default function StatTile({ label, icon: Icon, value, sub, subTone = 'muted', chart }) {
+export default function StatTile({ label, icon: Icon, value, sub, subTone = 'muted', chart, onClick }) {
   const toneClass =
     subTone === 'good'
       ? 'text-emerald-600'
@@ -7,7 +7,12 @@ export default function StatTile({ label, icon: Icon, value, sub, subTone = 'mut
         : 'text-slate-400'
 
   return (
-    <div className="bg-white border border-slate-200 rounded-[14px] p-4 shadow-[0_1px_2px_rgba(20,24,35,.04),0_8px_24px_rgba(20,24,35,.06)]">
+    <div
+      onClick={onClick}
+      className={`bg-white border border-slate-200 rounded-[14px] p-4 shadow-[0_1px_2px_rgba(20,24,35,.04),0_8px_24px_rgba(20,24,35,.06)] transition ${
+        onClick ? 'cursor-pointer hover:border-indigo-200 hover:shadow-[0_1px_2px_rgba(20,24,35,.04),0_8px_24px_rgba(79,70,229,.12)]' : ''
+      }`}
+    >
       <div className="flex items-center justify-between mb-3">
         <p className="font-mono text-[10px] tracking-[.1em] uppercase text-slate-400">{label}</p>
         {Icon && (

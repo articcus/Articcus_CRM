@@ -9,6 +9,7 @@ import DealsTablePage from './pages/DealsTablePage'
 import CompaniesPage from './pages/CompaniesPage'
 import ContactsPage from './pages/ContactsPage'
 import DashboardPage from './pages/DashboardPage'
+import SalesFunnelPage from './pages/SalesFunnelPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import TeamPage from './pages/TeamPage'
 
@@ -64,6 +65,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/funnel"
+            element={
+              <ProtectedRoute>
+                <SalesFunnelPage />
               </ProtectedRoute>
             }
           />

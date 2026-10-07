@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/users', [UserController::class, 'index']);
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/dashboard/funnel', [DashboardController::class, 'funnel']);
 
     Route::get('/invitations', [InvitationController::class, 'index']);
     Route::post('/invitations', [InvitationController::class, 'store']);
